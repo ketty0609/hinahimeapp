@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>Hina & Hime 飲食日記</title>
+<style>
+body {
+    font-family: Arial;
+    background: #ffe6f2;
+    padding: 15px;
+}
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+h2 { color:#ff4da6; text-align:center; }
+button {
+    background:#ff80bf;
+    border:none;
+    padding:8px;
+    border-radius:10px;
+    color:white;
+    margin-top:5px;
+}
+input, select {
+    width:100%;
+    padding:8px;
+    margin-top:5px;
+    border-radius:8px;
+    border:1px solid #ddd;
+}
+.product-item {
+    display:flex;
+    justify-content:space-between;
+    margin-top:5px;
+}
+</style>
+</head>
+<body>
+
+<h2>🌸 Hina & Hime 飲食日記</h2>
+
+<div class="card">
+<h3>📦 產品管理</h3>
+<input id="pname" placeholder="產品名稱">
+<input id="cal" type="number" placeholder="每100g熱量">
+<input id="water" type="number" placeholder="水分%">
+<select id="ptype">
+<option value="wet">濕食</option>
+<option value="dry">乾食</option>
+</select>
+<button onclick="addProduct()">新增產品</button>
+<div id="productManage"></div>
+</div>
+
+<div class="card">
+<h3>🍽 新增餵食</h3>
+<input type="date" id="mealDate">
+<select id="cat">
+<option value="hina">Hina</option>
+<option value="hime">Hime</option>
+</select>
+<select id="productList"></select>
+<input id="grams" type="number" placeholder="餵食克數">
+<button onclick="addMeal()">新增</button>
+</div>
+
+<div class="card">
+<h3>📅 查看紀錄</h3>
+<input type="date" id="viewDate" onchange="updateStats()">
+<div id="stats"></div>
+</div>
+
+<script>
+let products = JSON.parse(localStorage.getItem("products")) || [];
+let meals = JSON.parse(localStorage.getItem("meals")) || [];
+
+const goals = { hina:220, hime:160 };
+
+mealDate.valueAsDate = new Date();
+viewDate.valueAsDate = new Date();
+
+function save() {
+localStorage.setItem("products", JSON.stringify(products));
+localStorage.setItem("meals", JSON.stringify(meals));
+}
+
+function addProduct() {
+if(!pname.value) return alert("請填產品名稱");
+products.push({
+name:pname.value,
+cal:Number(cal.value),
+water:Number(water.value),
+type:ptype.value
+});
+save();
+updateProductList();
+updateProductManage();
+pname.value="";
+}
+
+function deleteProduct(index){
+products.splice(index,1);
+save();
+updateProductList();
+updateProductManage();
+}
+
+function updateProductList(){
+productList.innerHTML="";
+products.forEach((p,i)=>{
+let opt=document.createElement("option");
+opt.value=i;
+opt.text=p.name;
+productList.appendChild(opt);
+});
+}
+
+function updateProductManage(){
+productManage.innerHTML="";
+products.forEach((p,i)=>{
+let div=document.createElement("div");
+div.className="product-item";
+div.innerHTML=`${p.name} <button onclick="deleteProduct(${i})">刪除</button>`;
+productManage.appendChild(div);
+});
+}
+
+function addMeal(){
+let p=products[productList.value];
+if(!p) return alert("請先新增產品");
+let g=Number(grams.value);
+if(!g) return alert("請輸入克數");
+
+meals.push({
+date:mealDate.value,
+cat:cat.value,
+cal:g/100*p.cal,
+water:p.type==="wet"?g*(p.water/100):0
+});
+save();
+updateStats();
+grams.value="";
+}
+
+function updateStats(){
+let date=viewDate.value;
+let hinaCal=0,hinaWater=0,himeCal=0,himeWater=0;
+
+meals.filter(m=>m.date===date).forEach(m=>{
+if(m.cat==="hina"){
+hinaCal+=m.cal;
+hinaWater+=m.water;
+}else{
+himeCal+=m.cal;
+himeWater+=m.water;
+}
+});
+
+stats.innerHTML=`
+<strong>Hina</strong><br>
+🔥 ${Math.round(hinaCal)} / ${goals.hina} kcal<br>
+💧 ${Math.round(hinaWater)} ml<br><br>
+<strong>Hime</strong><br>
+🔥 ${Math.round(himeCal)} / ${goals.hime} kcal<br>
+💧 ${Math.round(himeWater)} ml
+`;
+}
+
+updateProductList();
+updateProductManage();
+updateStats();
+</script>
+
+</body>
+</html>
